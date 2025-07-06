@@ -3,6 +3,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:math';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../model/pickup_model.dart';
+
 class JobRouteScreen extends StatefulWidget {
   const JobRouteScreen({Key? key}) : super(key: key);
 
@@ -19,13 +21,15 @@ class _JobRouteScreenState extends State<JobRouteScreen> {
 
   final Set<Marker> _markers = <Marker>{};
 
+  final Set<Polyline> _polylines = <Polyline>{};
+
   @override
   void initState() {
     super.initState();
     _initData();
   }
 
-  // Step 1: Set mock current location & generate pickups
+  // Step 1: mock current location & generate pickups
   Future<void> _initData() async {
     final mockLoc = const LatLng(12.971598, 77.594566); // Bengaluru
 
@@ -33,10 +37,11 @@ class _JobRouteScreenState extends State<JobRouteScreen> {
     setState(() {
       _currentLocation = mockLoc;
       _addMarkers();
+      _buildPolyline();
     });
   }
 
-  // Step 2: Generate 5 random points within 5km
+  // Step 2: 5 random points within 5km
   List<LatLng> _generateMockPickups(LatLng origin, {double radiusKm = 5}) {
     final rnd = Random();
     const degPerKm = 1 / 111.0;
@@ -48,6 +53,10 @@ class _JobRouteScreenState extends State<JobRouteScreen> {
       return LatLng(origin.latitude + dy, origin.longitude + dx);
     });
   }
+  _infoWindowFor(Pickup p) => InfoWindow(
+    title: 'Pickup #${p.id}',
+    snippet: '${p.timeSlot}  ·  ${p.inventory} pcs',
+  );
 
   // Step 3: Add markers
   void _addMarkers() {
@@ -57,7 +66,12 @@ class _JobRouteScreenState extends State<JobRouteScreen> {
     _markers.add(Marker(
       markerId: const MarkerId('rider'),
       position: _currentLocation!,
-      infoWindow: const InfoWindow(title: 'You'),
+      infoWindow:_infoWindowFor(Pickup(
+        id: 0,
+        location: _currentLocation!,
+        timeSlot: 'Now',
+        inventory: 0,
+      )),
     ));
 
     // Pickup markers
@@ -76,6 +90,23 @@ class _JobRouteScreenState extends State<JobRouteScreen> {
       position: _warehouseLocation,
       infoWindow: const InfoWindow(title: 'Warehouse'),
       icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+    ));
+  }
+
+  void _buildPolyline() {
+    if (_currentLocation == null) return;
+
+    final List<LatLng> points = [
+      _currentLocation!,
+      ..._pickups.map((p) => p),
+      _warehouseLocation,
+    ];
+
+    _polylines.add(Polyline(
+      polylineId: const PolylineId('job_route'),
+      points: points,
+      color: Colors.blue,
+      width: 4,
     ));
   }
 
@@ -122,7 +153,7 @@ class _JobRouteScreenState extends State<JobRouteScreen> {
       body: GoogleMap(
         initialCameraPosition: CameraPosition(
           target: _currentLocation!,
-          zoom: 14,
+          zoom: 13,
         ),
         onMapCreated: (controller) {
           _mapController = controller;
@@ -131,6 +162,7 @@ class _JobRouteScreenState extends State<JobRouteScreen> {
         myLocationButtonEnabled: true,
         markers: _markers,
         zoomControlsEnabled: true,
+        polylines: _polylines
       ),
     );
   }
