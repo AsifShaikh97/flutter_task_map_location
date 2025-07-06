@@ -3,7 +3,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:math';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../model/pickup_model.dart';
 
 class JobRouteScreen extends StatefulWidget {
   const JobRouteScreen({Key? key}) : super(key: key);
@@ -53,10 +52,6 @@ class _JobRouteScreenState extends State<JobRouteScreen> {
       return LatLng(origin.latitude + dy, origin.longitude + dx);
     });
   }
-  _infoWindowFor(Pickup p) => InfoWindow(
-    title: 'Pickup #${p.id}',
-    snippet: '${p.timeSlot}  ·  ${p.inventory} pcs',
-  );
 
   // Step 3: Add markers
   void _addMarkers() {
@@ -66,12 +61,7 @@ class _JobRouteScreenState extends State<JobRouteScreen> {
     _markers.add(Marker(
       markerId: const MarkerId('rider'),
       position: _currentLocation!,
-      infoWindow:_infoWindowFor(Pickup(
-        id: 0,
-        location: _currentLocation!,
-        timeSlot: 'Now',
-        inventory: 0,
-      )),
+      infoWindow: const InfoWindow(title: 'Warehouse'),
     ));
 
     // Pickup markers
